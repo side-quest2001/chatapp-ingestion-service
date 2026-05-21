@@ -5,6 +5,7 @@ import { env } from "./config/env";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { notFoundMiddleware } from "./middleware/not-found.middleware";
 import { requestLoggerMiddleware } from "./middleware/request-logger.middleware";
+import { conversationRouter } from "./modules/conversations/conversation.routes";
 import { healthRouter } from "./routes/health.routes";
 
 const app = express();
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use(requestLoggerMiddleware);
 
 app.use("/api/health", healthRouter);
+app.use("/api/conversations", conversationRouter);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
