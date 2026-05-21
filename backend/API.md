@@ -66,6 +66,36 @@ Base URL: `http://localhost:4000`
     }
     ```
 
+## Dashboard
+
+- `GET /api/dashboard/summary`
+- `GET /api/dashboard/recent-logs?limit=20&status=SUCCESS&provider=groq&model=llama-3.1-8b-instant`
+- `GET /api/dashboard/latency?bucket=hour&limit=24`
+- `GET /api/dashboard/status-breakdown`
+- `GET /api/dashboard/provider-breakdown`
+
+### Dashboard curl examples
+
+```bash
+curl http://localhost:4000/api/dashboard/summary
+```
+
+```bash
+curl "http://localhost:4000/api/dashboard/recent-logs?limit=20&status=SUCCESS&provider=groq&model=llama-3.1-8b-instant"
+```
+
+```bash
+curl "http://localhost:4000/api/dashboard/latency?bucket=hour&limit=24"
+```
+
+```bash
+curl http://localhost:4000/api/dashboard/status-breakdown
+```
+
+```bash
+curl http://localhost:4000/api/dashboard/provider-breakdown
+```
+
 ## Notes
 
 - Conversation titles default to `"New conversation"` when omitted.
@@ -74,6 +104,7 @@ Base URL: `http://localhost:4000`
 - `provider` and `model` are optional in chat requests. If omitted, backend env defaults are used.
 - Inference log previews are redacted before saving to mask emails, Indian phone numbers, and common secret formats.
 - Inference log requests return `400` when a provided `conversationId` does not exist.
+- Dashboard APIs are read-only analytics over the existing `InferenceLog` table.
 - Validation and not-found failures use the shared error response shape:
   ```json
   {
