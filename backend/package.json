@@ -12,7 +12,11 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^2.0.35",
+    "@ai-sdk/groq": "^3.0.39",
+    "@ai-sdk/openai": "^3.0.64",
     "@prisma/client": "^6.19.0",
+    "ai": "^6.0.189",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
