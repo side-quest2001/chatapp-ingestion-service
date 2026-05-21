@@ -1,8 +1,14 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../db/prisma";
+import type { LatencyQuery, RecentLogsQuery } from "./dashboard.schema";
 
 const INFERENCE_STATUSES = ["SUCCESS", "ERROR", "CANCELLED"] as const;
+const LATENCY_BUCKET_SQL: Record<LatencyQuery["bucket"], Prisma.Sql> = {
+  minute: Prisma.sql`DATE_TRUNC('minute', "createdAt")`,
+  hour: Prisma.sql`DATE_TRUNC('hour', "createdAt")`,
+  day: Prisma.sql`DATE_TRUNC('day', "createdAt")`,
+};
 
 const getSummary = async () => {
   const [
@@ -77,6 +83,150 @@ const getSummary = async () => {
   };
 };
 
+const getRecentLogs = async (query: RecentLogsQuery) => {
+  return prisma.inferenceLog.findMany({
+    where: {
+      status: query.status,
+      provider: query.provider,
+      model: query.model,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: query.limit,
+    select: {
+      id: true,
+      conversationId: true,
+      provider: true,
+      model: true,
+      status: true,
+      latencyMs: true,
+      inputPreview: true,
+      outputPreview: true,
+      errorMessage: true,
+      promptTokens: true,
+      completionTokens: true,
+      totalTokens: true,
+      startedAt: true,
+      completedAt: true,
+      createdAt: true,
+    },
+  });
+};
+
+type LatencyRow = {
+  bucket: Date;
+  averageLatencyMs: number | null;
+  requestCount: bigint;
+};
+
+const getLatencySeries = async (query: LatencyQuery) => {
+  const bucketExpression = LATENCY_BUCKET_SQL[query.bucket];
+
+  const rows = await prisma.$queryRaw<LatencyRow[]>(Prisma.sql`
+    SELECT
+      ${bucketExpression} AS "bucket",
+      ROUND(AVG("latencyMs"))::int AS "averageLatencyMs",
+      COUNT(*)::bigint AS "requestCount"
+    FROM "InferenceLog"
+    GROUP BY 1
+    ORDER BY 1 DESC
+    LIMIT ${query.limit}
+  `);
+
+  return rows
+    .map((row) => ({
+      bucket: row.bucket.toISOString(),
+      averageLatencyMs: row.averageLatencyMs ?? 0,
+      requestCount: Number(row.requestCount),
+    }))
+    .reverse();
+};
+
+const getStatusBreakdown = async () => {
+  const groupedStatuses = await prisma.inferenceLog.groupBy({
+    by: ["status"],
+    _count: {
+      status: true,
+    },
+  });
+
+  const countsByStatus = groupedStatuses.reduce<Record<string, number>>(
+    (accumulator, groupedStatus) => ({
+      ...accumulator,
+      [groupedStatus.status]: groupedStatus._count.status,
+    }),
+    {},
+  );
+
+  return INFERENCE_STATUSES.map((status) => ({
+    status,
+    count: countsByStatus[status] ?? 0,
+  }));
+};
+
+const getProviderBreakdown = async () => {
+  const groupedBreakdown = await prisma.inferenceLog.groupBy({
+    by: ["provider", "model"],
+    _count: {
+      _all: true,
+    },
+    _avg: {
+      latencyMs: true,
+    },
+    _sum: {
+      totalTokens: true,
+    },
+    orderBy: {
+      _count: {
+        id: "desc",
+      },
+    },
+  });
+
+  return groupedBreakdown.map((entry) => ({
+    provider: entry.provider,
+    model: entry.model,
+    requestCount: entry._count._all,
+    averageLatencyMs: Math.round(entry._avg.latencyMs ?? 0),
+    errorCount: 0,
+    totalTokens: entry._sum.totalTokens ?? 0,
+  }));
+};
+
+const attachProviderErrorCounts = async () => {
+  const errorGroups = await prisma.inferenceLog.groupBy({
+    by: ["provider", "model"],
+    where: {
+      status: "ERROR",
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  return errorGroups.reduce<Record<string, number>>((accumulator, entry) => {
+    accumulator[`${entry.provider}::${entry.model}`] = entry._count._all;
+    return accumulator;
+  }, {});
+};
+
+const getProviderBreakdownWithErrors = async () => {
+  const [breakdown, errorCounts] = await Promise.all([
+    getProviderBreakdown(),
+    attachProviderErrorCounts(),
+  ]);
+
+  return breakdown.map((entry) => ({
+    ...entry,
+    errorCount: errorCounts[`${entry.provider}::${entry.model}`] ?? 0,
+  }));
+};
+
 export const dashboardService = {
   getSummary,
+  getRecentLogs,
+  getLatencySeries,
+  getStatusBreakdown,
+  getProviderBreakdown: getProviderBreakdownWithErrors,
 };
