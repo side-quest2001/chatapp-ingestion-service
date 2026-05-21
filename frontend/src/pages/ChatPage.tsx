@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { ConversationDetail, ConversationSummary, ProviderName } from "../api/types";
+import { chatApi } from "../api/chat.api";
+import { conversationsApi } from "../api/conversations.api";
+import type {
+  ConversationDetail,
+  ConversationSummary,
+  ProviderName,
+} from "../api/types";
 import { AppSidebar } from "../components/app-shell/AppSidebar";
 import { ChatHeader } from "../components/chat/ChatHeader";
 import { ChatThread } from "../components/chat/ChatThread";
@@ -8,79 +14,186 @@ import { ConversationsPanel } from "../components/chat/ConversationsPanel";
 import { EmptyChatState } from "../components/chat/EmptyChatState";
 import { MessageComposer } from "../components/chat/MessageComposer";
 
-const demoConversations: ConversationSummary[] = [
-  {
-    id: "conv-1",
-    title: "Model selection discussion",
-    status: "ACTIVE",
-    createdAt: "2026-05-21T08:30:00.000Z",
-    updatedAt: "2026-05-21T10:24:00.000Z",
-    messageCount: 8,
-  },
-  {
-    id: "conv-2",
-    title: "Prompt redaction review",
-    status: "ACTIVE",
-    createdAt: "2026-05-21T07:40:00.000Z",
-    updatedAt: "2026-05-21T09:12:00.000Z",
-    messageCount: 5,
-  },
-  {
-    id: "conv-3",
-    title: "Cancelled sample thread",
-    status: "CANCELLED",
-    createdAt: "2026-05-20T18:00:00.000Z",
-    updatedAt: "2026-05-20T18:41:00.000Z",
-    messageCount: 3,
-  },
-];
-
-const demoConversationDetail: ConversationDetail = {
-  id: "conv-1",
-  title: "Model selection discussion",
-  status: "ACTIVE",
-  createdAt: "2026-05-21T08:30:00.000Z",
-  updatedAt: "2026-05-21T10:24:00.000Z",
-  messages: [
-    {
-      id: "m1",
-      role: "ASSISTANT",
-      content:
-        "I can help you compare `groq`, `openai`, and `deepseek` for latency, pricing, and response style.",
-      createdAt: "2026-05-21T10:20:00.000Z",
-    },
-    {
-      id: "m2",
-      role: "USER",
-      content: "Show me an example system prompt for concise answers.",
-      createdAt: "2026-05-21T10:21:00.000Z",
-    },
-    {
-      id: "m3",
-      role: "ASSISTANT",
-      content: `You could start with:\n\n\`\`\`txt\nYou are a concise helpful assistant.\nAlways answer clearly in 3-5 bullet points unless the user asks for depth.\n\`\`\``,
-      createdAt: "2026-05-21T10:22:00.000Z",
-    },
-  ],
+const defaultModels: Record<ProviderName, string> = {
+  groq: "llama-3.1-8b-instant",
+  openai: "gpt-4.1-mini",
+  deepseek: "deepseek-chat",
 };
 
 export function ChatPage() {
   const [searchValue, setSearchValue] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
-    demoConversations[0]?.id ?? null,
+    null,
   );
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [activeConversation, setActiveConversation] =
+    useState<ConversationDetail | null>(null);
   const [provider, setProvider] = useState<ProviderName>("groq");
-  const [model, setModel] = useState("llama-3.1-8b-instant");
+  const [model, setModel] = useState(defaultModels.groq);
   const [composerValue, setComposerValue] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [isLoadingConversationDetail, setIsLoadingConversationDetail] =
+    useState(false);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isCancellingConversation, setIsCancellingConversation] = useState(false);
 
-  const filteredConversations = demoConversations.filter((conversation) =>
+  const filteredConversations = conversations.filter((conversation) =>
     (conversation.title ?? "")
       .toLowerCase()
       .includes(searchValue.trim().toLowerCase()),
   );
-  const activeConversation = selectedConversationId ? demoConversationDetail : null;
   const composerDisabled =
-    !activeConversation || activeConversation.status === "CANCELLED";
+    !activeConversation ||
+    activeConversation.status === "CANCELLED" ||
+    isSendingMessage;
+
+  const loadConversationDetail = async (conversationId: string) => {
+    setIsLoadingConversationDetail(true);
+
+    try {
+      const conversation = await conversationsApi.getById(conversationId);
+      setActiveConversation(conversation);
+      setSelectedConversationId(conversationId);
+      setErrorMessage(null);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to load the selected conversation.";
+      setErrorMessage(message);
+    } finally {
+      setIsLoadingConversationDetail(false);
+    }
+  };
+
+  const refreshConversations = async (preferredConversationId?: string | null) => {
+    setIsLoadingConversations(true);
+
+    try {
+      const nextConversations = await conversationsApi.list();
+      setConversations(nextConversations);
+
+      const nextSelectedId =
+        preferredConversationId ??
+        (nextConversations.some(
+          (conversation) => conversation.id === selectedConversationId,
+        )
+          ? selectedConversationId
+          : nextConversations[0]?.id ?? null);
+
+      if (nextSelectedId) {
+        await loadConversationDetail(nextSelectedId);
+      } else {
+        setSelectedConversationId(null);
+        setActiveConversation(null);
+      }
+
+      setErrorMessage(null);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to load conversations.";
+      setErrorMessage(message);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshConversations();
+  }, []);
+
+  const handleCreateConversation = async () => {
+    setIsCreatingConversation(true);
+
+    try {
+      const conversation = await conversationsApi.create();
+      await refreshConversations(conversation.id);
+      setComposerValue("");
+      setErrorMessage(null);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to create a new conversation.";
+      setErrorMessage(message);
+    } finally {
+      setIsCreatingConversation(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedConversationId || !composerValue.trim()) {
+      return;
+    }
+
+    setIsSendingMessage(true);
+
+    try {
+      const response = await chatApi.sendMessage(selectedConversationId, {
+        content: composerValue.trim(),
+        provider,
+        model,
+      });
+
+      setComposerValue("");
+      setActiveConversation((currentConversation) => {
+        if (!currentConversation || currentConversation.id !== selectedConversationId) {
+          return currentConversation;
+        }
+
+        return {
+          ...currentConversation,
+          messages: [
+            ...currentConversation.messages,
+            response.userMessage,
+            response.assistantMessage,
+          ],
+          updatedAt: response.assistantMessage.createdAt,
+        };
+      });
+
+      await refreshConversations(selectedConversationId);
+      setErrorMessage(null);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to send message.";
+      setErrorMessage(message);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleCancelConversation = async () => {
+    if (!selectedConversationId) {
+      return;
+    }
+
+    setIsCancellingConversation(true);
+
+    try {
+      await conversationsApi.cancel(selectedConversationId);
+      setActiveConversation((currentConversation) =>
+        currentConversation
+          ? {
+              ...currentConversation,
+              status: "CANCELLED",
+            }
+          : currentConversation,
+      );
+      await refreshConversations(selectedConversationId);
+      setErrorMessage(null);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to cancel conversation.";
+      setErrorMessage(message);
+    } finally {
+      setIsCancellingConversation(false);
+    }
+  };
 
   return (
     <main className="flex h-dvh overflow-hidden bg-slate-950 text-slate-100">
@@ -92,8 +205,13 @@ export function ChatPage() {
           searchValue={searchValue}
           selectedConversationId={selectedConversationId}
           onSearchChange={setSearchValue}
-          onSelectConversation={setSelectedConversationId}
-          onCreateConversation={() => undefined}
+          onSelectConversation={(conversationId) => {
+            void loadConversationDetail(conversationId);
+          }}
+          onCreateConversation={() => {
+            void handleCreateConversation();
+          }}
+          isLoading={isLoadingConversations || isCreatingConversation}
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -101,27 +219,53 @@ export function ChatPage() {
             conversation={activeConversation}
             provider={provider}
             model={model}
-            onProviderChange={setProvider}
+            onProviderChange={(nextProvider) => {
+              setProvider(nextProvider);
+              setModel(defaultModels[nextProvider]);
+            }}
             onModelChange={setModel}
-            onCancelConversation={() => undefined}
-            isCancelling={false}
+            onCancelConversation={() => {
+              void handleCancelConversation();
+            }}
+            isCancelling={isCancellingConversation}
           />
 
           <div className="flex min-h-0 flex-1 flex-col justify-between px-8 py-8">
+            {errorMessage ? (
+              <div className="mb-5 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                {errorMessage}
+              </div>
+            ) : null}
+
             {activeConversation ? (
-              <ChatThread messages={activeConversation.messages} />
+              isLoadingConversationDetail ? (
+                <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-slate-400">
+                  Loading conversation...
+                </div>
+              ) : (
+                <ChatThread messages={activeConversation.messages} />
+              )
             ) : (
-              <EmptyChatState onCreateConversation={() => undefined} />
+              <EmptyChatState
+                onCreateConversation={() => {
+                  void handleCreateConversation();
+                }}
+              />
             )}
 
             <MessageComposer
               value={composerValue}
               onChange={setComposerValue}
-              onSubmit={() => undefined}
+              onSubmit={() => {
+                void handleSendMessage();
+              }}
               disabled={composerDisabled}
+              isLoading={isSendingMessage}
               statusText={
                 activeConversation?.status === "CANCELLED"
                   ? "This conversation is cancelled. Messaging is disabled."
+                  : !activeConversation
+                    ? "Create a conversation to start chatting."
                   : null
               }
             />

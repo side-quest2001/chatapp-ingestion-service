@@ -6,6 +6,14 @@ import type {
   CreateConversationPayload,
 } from "./types";
 
+type CreateConversationResponse = {
+  id: string;
+  title: string | null;
+  status: "ACTIVE" | "CANCELLED" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+};
+
 export const conversationsApi = {
   list: async () => {
     const response = await apiClient<ApiSuccessResponse<ConversationSummary[]>>(
@@ -14,7 +22,7 @@ export const conversationsApi = {
     return response.data;
   },
   create: async (payload: CreateConversationPayload = {}) => {
-    const response = await apiClient<ApiSuccessResponse<ConversationDetail>>(
+    const response = await apiClient<ApiSuccessResponse<CreateConversationResponse>>(
       "/conversations",
       {
         method: "POST",

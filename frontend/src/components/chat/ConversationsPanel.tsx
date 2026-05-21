@@ -7,6 +7,7 @@ type ConversationsPanelProps = {
   conversations: ConversationSummary[];
   searchValue: string;
   selectedConversationId: string | null;
+  isLoading?: boolean;
   onSearchChange: (value: string) => void;
   onSelectConversation: (conversationId: string) => void;
   onCreateConversation: () => void;
@@ -16,6 +17,7 @@ export function ConversationsPanel({
   conversations,
   searchValue,
   selectedConversationId,
+  isLoading = false,
   onSearchChange,
   onSelectConversation,
   onCreateConversation,
@@ -55,14 +57,28 @@ export function ConversationsPanel({
       </div>
 
       <div className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-        {conversations.map((conversation) => (
-          <ConversationListItem
-            key={conversation.id}
-            conversation={conversation}
-            isSelected={conversation.id === selectedConversationId}
-            onSelect={onSelectConversation}
-          />
-        ))}
+        {isLoading ? (
+          <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">
+            Loading conversations...
+          </div>
+        ) : null}
+
+        {!isLoading && conversations.length === 0 ? (
+          <div className="rounded-[1.6rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm leading-6 text-slate-400">
+            No conversations yet. Create one to start chatting.
+          </div>
+        ) : null}
+
+        {!isLoading
+          ? conversations.map((conversation) => (
+              <ConversationListItem
+                key={conversation.id}
+                conversation={conversation}
+                isSelected={conversation.id === selectedConversationId}
+                onSelect={onSelectConversation}
+              />
+            ))
+          : null}
       </div>
     </aside>
   );
