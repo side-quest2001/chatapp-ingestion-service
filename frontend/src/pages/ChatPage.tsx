@@ -1,25 +1,61 @@
+import { useState } from "react";
+
+import type { ConversationSummary } from "../api/types";
 import { AppSidebar } from "../components/app-shell/AppSidebar";
+import { ConversationsPanel } from "../components/chat/ConversationsPanel";
+
+const demoConversations: ConversationSummary[] = [
+  {
+    id: "conv-1",
+    title: "Model selection discussion",
+    status: "ACTIVE",
+    createdAt: "2026-05-21T08:30:00.000Z",
+    updatedAt: "2026-05-21T10:24:00.000Z",
+    messageCount: 8,
+  },
+  {
+    id: "conv-2",
+    title: "Prompt redaction review",
+    status: "ACTIVE",
+    createdAt: "2026-05-21T07:40:00.000Z",
+    updatedAt: "2026-05-21T09:12:00.000Z",
+    messageCount: 5,
+  },
+  {
+    id: "conv-3",
+    title: "Cancelled sample thread",
+    status: "CANCELLED",
+    createdAt: "2026-05-20T18:00:00.000Z",
+    updatedAt: "2026-05-20T18:41:00.000Z",
+    messageCount: 3,
+  },
+];
 
 export function ChatPage() {
+  const [searchValue, setSearchValue] = useState("");
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
+    demoConversations[0]?.id ?? null,
+  );
+
+  const filteredConversations = demoConversations.filter((conversation) =>
+    (conversation.title ?? "")
+      .toLowerCase()
+      .includes(searchValue.trim().toLowerCase()),
+  );
+
   return (
     <main className="flex h-dvh overflow-hidden bg-slate-950 text-slate-100">
       <AppSidebar />
 
       <section className="flex min-w-0 flex-1 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.95))]">
-        <div className="flex w-[360px] shrink-0 flex-col border-r border-white/10 bg-slate-900/70 p-6">
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-slate-950/30">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300">
-              Conversations
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
-              Ready to resume a thread
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              This panel will host search, recent conversations, and the create
-              conversation action.
-            </p>
-          </div>
-        </div>
+        <ConversationsPanel
+          conversations={filteredConversations}
+          searchValue={searchValue}
+          selectedConversationId={selectedConversationId}
+          onSearchChange={setSearchValue}
+          onSelectConversation={setSelectedConversationId}
+          onCreateConversation={() => undefined}
+        />
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="border-b border-white/10 bg-slate-950/40 px-8 py-6 backdrop-blur">
