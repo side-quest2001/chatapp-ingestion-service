@@ -6,6 +6,7 @@ import type {
   DashboardSummary,
   LatencyPoint,
   ProviderBreakdownItem,
+  RecentInferenceLog,
   StatusBreakdownItem,
 } from "../api/types";
 import { DashboardHeader } from "../components/dashboard/DashboardHeader";
@@ -13,6 +14,7 @@ import { EmptyDashboardState } from "../components/dashboard/EmptyDashboardState
 import { LatencyChart } from "../components/dashboard/LatencyChart";
 import { MetricCard } from "../components/dashboard/MetricCard";
 import { ProviderBreakdownTable } from "../components/dashboard/ProviderBreakdownTable";
+import { RecentLogsTable } from "../components/dashboard/RecentLogsTable";
 import { StatusBreakdown } from "../components/dashboard/StatusBreakdown";
 
 const formatNumber = (value: number) => value.toLocaleString();
@@ -22,6 +24,7 @@ type DashboardMetricsState = {
   latency: LatencyPoint[];
   statusBreakdown: StatusBreakdownItem[];
   providerBreakdown: ProviderBreakdownItem[];
+  recentLogs: RecentInferenceLog[];
 };
 
 export function DashboardPage() {
@@ -30,20 +33,33 @@ export function DashboardPage() {
     latency: [],
     statusBreakdown: [],
     providerBreakdown: [],
+    recentLogs: [],
   });
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | "SUCCESS" | "ERROR" | "CANCELLED"
+  >("ALL");
+  const [providerFilter, setProviderFilter] = useState("");
 
-  const loadDashboard = async () => {
+  const loadDashboard = async (
+    nextStatusFilter: "ALL" | "SUCCESS" | "ERROR" | "CANCELLED" = statusFilter,
+    nextProviderFilter = providerFilter,
+  ) => {
     setIsLoading(true);
 
     try {
-      const [summary, latency, statusBreakdown, providerBreakdown] =
+      const [summary, latency, statusBreakdown, providerBreakdown, recentLogs] =
         await Promise.all([
           dashboardApi.getSummary(),
           dashboardApi.getLatencySeries(),
           dashboardApi.getStatusBreakdown(),
           dashboardApi.getProviderBreakdown(),
+          dashboardApi.getRecentLogs({
+            limit: 20,
+            status: nextStatusFilter === "ALL" ? undefined : nextStatusFilter,
+            provider: nextProviderFilter.trim() || undefined,
+          }),
         ]);
 
       setData({
@@ -51,6 +67,7 @@ export function DashboardPage() {
         latency,
         statusBreakdown,
         providerBreakdown,
+        recentLogs,
       });
       setErrorMessage(null);
     } catch (error) {
@@ -63,8 +80,8 @@ export function DashboardPage() {
   };
 
   useEffect(() => {
-    void loadDashboard();
-  }, []);
+    void loadDashboard(statusFilter, providerFilter);
+  }, [statusFilter, providerFilter]);
 
   const summary = data.summary;
   const isEmpty = !summary || summary.totalRequests === 0;
@@ -124,6 +141,15 @@ export function DashboardPage() {
 
             <ProviderBreakdownTable
               data={data.providerBreakdown}
+              isLoading={isLoading}
+            />
+
+            <RecentLogsTable
+              logs={data.recentLogs}
+              providerFilter={providerFilter}
+              statusFilter={statusFilter}
+              onProviderFilterChange={setProviderFilter}
+              onStatusFilterChange={setStatusFilter}
               isLoading={isLoading}
             />
           </>
