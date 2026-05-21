@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum InferenceStatus {
+  SUCCESS
+  ERROR
+  CANCELLED
+}
+
+enum ConversationStatus {
+  ACTIVE
+  CANCELLED
+  ARCHIVED
+}
+
+model Conversation {
+  id            String             @id @default(uuid()) @db.Uuid
+  title         String?
+  status        ConversationStatus @default(ACTIVE)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  messages      ChatMessage[]
+  inferenceLogs InferenceLog[]
+}
+
+model ChatMessage {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  role           MessageRole
+  content        String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model InferenceLog {
+  id               String          @id @default(uuid()) @db.Uuid
+  conversationId   String?         @db.Uuid
+  provider         String
+  model            String
+  status           InferenceStatus
+  latencyMs        Int
+  inputPreview     String?
+  outputPreview    String?
+  errorMessage     String?
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  startedAt        DateTime
+  completedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  metadata         Json?
+  conversation     Conversation?   @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([provider])
+  @@index([model])
+  @@index([status])
+  @@index([createdAt])
+}
