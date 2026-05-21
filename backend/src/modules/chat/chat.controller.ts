@@ -5,8 +5,12 @@ import { createChatMessageBodySchema, chatMessageParamsSchema } from "./chat.sch
 
 const sendMessage = async (request: Request, response: Response) => {
   const { conversationId } = chatMessageParamsSchema.parse(request.params);
-  const { content } = createChatMessageBodySchema.parse(request.body);
-  const result = await chatService.sendMessage(conversationId, content);
+  const { content, provider, model } = createChatMessageBodySchema.parse(request.body);
+  const result = await chatService.sendMessage(conversationId, {
+    content,
+    provider,
+    model,
+  });
 
   response.status(201).json({
     success: true,
