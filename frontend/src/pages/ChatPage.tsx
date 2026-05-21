@@ -7,7 +7,6 @@ import type {
   ConversationSummary,
   ProviderName,
 } from "../api/types";
-import { AppSidebar } from "../components/app-shell/AppSidebar";
 import { ChatHeader } from "../components/chat/ChatHeader";
 import { ChatThread } from "../components/chat/ChatThread";
 import { ConversationsPanel } from "../components/chat/ConversationsPanel";
@@ -196,82 +195,78 @@ export function ChatPage() {
   };
 
   return (
-    <main className="flex h-dvh overflow-hidden bg-slate-950 text-slate-100">
-      <AppSidebar />
+    <section className="flex min-w-0 flex-1 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.95))]">
+      <ConversationsPanel
+        conversations={filteredConversations}
+        searchValue={searchValue}
+        selectedConversationId={selectedConversationId}
+        onSearchChange={setSearchValue}
+        onSelectConversation={(conversationId) => {
+          void loadConversationDetail(conversationId);
+        }}
+        onCreateConversation={() => {
+          void handleCreateConversation();
+        }}
+        isLoading={isLoadingConversations || isCreatingConversation}
+      />
 
-      <section className="flex min-w-0 flex-1 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.95))]">
-        <ConversationsPanel
-          conversations={filteredConversations}
-          searchValue={searchValue}
-          selectedConversationId={selectedConversationId}
-          onSearchChange={setSearchValue}
-          onSelectConversation={(conversationId) => {
-            void loadConversationDetail(conversationId);
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ChatHeader
+          conversation={activeConversation}
+          provider={provider}
+          model={model}
+          onProviderChange={(nextProvider) => {
+            setProvider(nextProvider);
+            setModel(defaultModels[nextProvider]);
           }}
-          onCreateConversation={() => {
-            void handleCreateConversation();
+          onModelChange={setModel}
+          onCancelConversation={() => {
+            void handleCancelConversation();
           }}
-          isLoading={isLoadingConversations || isCreatingConversation}
+          isCancelling={isCancellingConversation}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <ChatHeader
-            conversation={activeConversation}
-            provider={provider}
-            model={model}
-            onProviderChange={(nextProvider) => {
-              setProvider(nextProvider);
-              setModel(defaultModels[nextProvider]);
-            }}
-            onModelChange={setModel}
-            onCancelConversation={() => {
-              void handleCancelConversation();
-            }}
-            isCancelling={isCancellingConversation}
-          />
+        <div className="flex min-h-0 flex-1 flex-col justify-between px-8 py-8">
+          {errorMessage ? (
+            <div className="mb-5 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              {errorMessage}
+            </div>
+          ) : null}
 
-          <div className="flex min-h-0 flex-1 flex-col justify-between px-8 py-8">
-            {errorMessage ? (
-              <div className="mb-5 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-                {errorMessage}
+          {activeConversation ? (
+            isLoadingConversationDetail ? (
+              <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-slate-400">
+                Loading conversation...
               </div>
-            ) : null}
-
-            {activeConversation ? (
-              isLoadingConversationDetail ? (
-                <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-slate-400">
-                  Loading conversation...
-                </div>
-              ) : (
-                <ChatThread messages={activeConversation.messages} />
-              )
             ) : (
-              <EmptyChatState
-                onCreateConversation={() => {
-                  void handleCreateConversation();
-                }}
-              />
-            )}
-
-            <MessageComposer
-              value={composerValue}
-              onChange={setComposerValue}
-              onSubmit={() => {
-                void handleSendMessage();
+              <ChatThread messages={activeConversation.messages} />
+            )
+          ) : (
+            <EmptyChatState
+              onCreateConversation={() => {
+                void handleCreateConversation();
               }}
-              disabled={composerDisabled}
-              isLoading={isSendingMessage}
-              statusText={
-                activeConversation?.status === "CANCELLED"
-                  ? "This conversation is cancelled. Messaging is disabled."
-                  : !activeConversation
-                    ? "Create a conversation to start chatting."
-                  : null
-              }
             />
-          </div>
+          )}
+
+          <MessageComposer
+            value={composerValue}
+            onChange={setComposerValue}
+            onSubmit={() => {
+              void handleSendMessage();
+            }}
+            disabled={composerDisabled}
+            isLoading={isSendingMessage}
+            statusText={
+              activeConversation?.status === "CANCELLED"
+                ? "This conversation is cancelled. Messaging is disabled."
+                : !activeConversation
+                  ? "Create a conversation to start chatting."
+                : null
+            }
+          />
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
   );
 }

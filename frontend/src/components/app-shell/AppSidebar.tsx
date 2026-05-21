@@ -8,31 +8,42 @@ import {
   Settings,
 } from "lucide-react";
 
+export type AppView = "chat" | "conversations" | "logs" | "dashboard" | "settings";
+
 const navItems = [
   {
+    key: "chat" as const,
     label: "Chat",
     icon: MessageSquareText,
-    active: true,
   },
   {
+    key: "conversations" as const,
     label: "Conversations",
     icon: ListTree,
   },
   {
+    key: "logs" as const,
     label: "Logs",
     icon: Logs,
   },
   {
+    key: "dashboard" as const,
     label: "Dashboard",
     icon: LayoutDashboard,
   },
   {
+    key: "settings" as const,
     label: "Settings",
     icon: Settings,
   },
 ];
 
-export function AppSidebar() {
+type AppSidebarProps = {
+  selectedView: AppView;
+  onSelectView: (view: AppView) => void;
+};
+
+export function AppSidebar({ selectedView, onSelectView }: AppSidebarProps) {
   return (
     <aside className="flex w-24 shrink-0 flex-col justify-between border-r border-white/10 bg-slate-950/95 p-4 text-slate-300">
       <div>
@@ -51,8 +62,9 @@ export function AppSidebar() {
               <button
                 key={item.label}
                 type="button"
+                onClick={() => onSelectView(item.key)}
                 className={`group mt-1 flex w-full flex-col items-center gap-2 rounded-2xl px-2 py-3 text-xs font-medium transition ${
-                  item.active
+                  item.key === selectedView
                     ? "bg-cyan-400/12 text-white shadow-lg shadow-cyan-950/40 ring-1 ring-inset ring-cyan-300/20"
                     : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
                 }`}
