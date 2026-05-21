@@ -1,8 +1,12 @@
 import { useState } from "react";
 
-import type { ConversationSummary } from "../api/types";
+import type { ConversationDetail, ConversationSummary, ProviderName } from "../api/types";
 import { AppSidebar } from "../components/app-shell/AppSidebar";
+import { ChatHeader } from "../components/chat/ChatHeader";
+import { ChatThread } from "../components/chat/ChatThread";
 import { ConversationsPanel } from "../components/chat/ConversationsPanel";
+import { EmptyChatState } from "../components/chat/EmptyChatState";
+import { MessageComposer } from "../components/chat/MessageComposer";
 
 const demoConversations: ConversationSummary[] = [
   {
@@ -31,17 +35,52 @@ const demoConversations: ConversationSummary[] = [
   },
 ];
 
+const demoConversationDetail: ConversationDetail = {
+  id: "conv-1",
+  title: "Model selection discussion",
+  status: "ACTIVE",
+  createdAt: "2026-05-21T08:30:00.000Z",
+  updatedAt: "2026-05-21T10:24:00.000Z",
+  messages: [
+    {
+      id: "m1",
+      role: "ASSISTANT",
+      content:
+        "I can help you compare `groq`, `openai`, and `deepseek` for latency, pricing, and response style.",
+      createdAt: "2026-05-21T10:20:00.000Z",
+    },
+    {
+      id: "m2",
+      role: "USER",
+      content: "Show me an example system prompt for concise answers.",
+      createdAt: "2026-05-21T10:21:00.000Z",
+    },
+    {
+      id: "m3",
+      role: "ASSISTANT",
+      content: `You could start with:\n\n\`\`\`txt\nYou are a concise helpful assistant.\nAlways answer clearly in 3-5 bullet points unless the user asks for depth.\n\`\`\``,
+      createdAt: "2026-05-21T10:22:00.000Z",
+    },
+  ],
+};
+
 export function ChatPage() {
   const [searchValue, setSearchValue] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
     demoConversations[0]?.id ?? null,
   );
+  const [provider, setProvider] = useState<ProviderName>("groq");
+  const [model, setModel] = useState("llama-3.1-8b-instant");
+  const [composerValue, setComposerValue] = useState("");
 
   const filteredConversations = demoConversations.filter((conversation) =>
     (conversation.title ?? "")
       .toLowerCase()
       .includes(searchValue.trim().toLowerCase()),
   );
+  const activeConversation = selectedConversationId ? demoConversationDetail : null;
+  const composerDisabled =
+    !activeConversation || activeConversation.status === "CANCELLED";
 
   return (
     <main className="flex h-dvh overflow-hidden bg-slate-950 text-slate-100">
@@ -58,29 +97,34 @@ export function ChatPage() {
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="border-b border-white/10 bg-slate-950/40 px-8 py-6 backdrop-blur">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-300">
-              Chat Workspace
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">
-              Real-time conversation canvas
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              Provider controls, conversation title, and cancellation state will
-              live here.
-            </p>
-          </header>
+          <ChatHeader
+            conversation={activeConversation}
+            provider={provider}
+            model={model}
+            onProviderChange={setProvider}
+            onModelChange={setModel}
+            onCancelConversation={() => undefined}
+            isCancelling={false}
+          />
 
           <div className="flex min-h-0 flex-1 flex-col justify-between px-8 py-8">
-            <div className="rounded-[2rem] border border-dashed border-white/10 bg-white/[0.03] p-10 text-sm text-slate-400">
-              Thread placeholder
-            </div>
+            {activeConversation ? (
+              <ChatThread messages={activeConversation.messages} />
+            ) : (
+              <EmptyChatState onCreateConversation={() => undefined} />
+            )}
 
-            <div className="mt-6 rounded-[2rem] border border-white/10 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/30">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-slate-400">
-                Composer placeholder
-              </div>
-            </div>
+            <MessageComposer
+              value={composerValue}
+              onChange={setComposerValue}
+              onSubmit={() => undefined}
+              disabled={composerDisabled}
+              statusText={
+                activeConversation?.status === "CANCELLED"
+                  ? "This conversation is cancelled. Messaging is disabled."
+                  : null
+              }
+            />
           </div>
         </div>
       </section>
