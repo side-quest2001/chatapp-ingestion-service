@@ -1,6 +1,13 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../db/prisma";
+import {
+  toDashboardSummaryDto,
+  toLatencyPointDto,
+  toProviderBreakdownDto,
+  toRecentInferenceLogDto,
+  toStatusBreakdownDto,
+} from "./dashboard.dto";
 import type { LatencyQuery, RecentLogsQuery } from "./dashboard.schema";
 
 const INFERENCE_STATUSES = ["SUCCESS", "ERROR", "CANCELLED"] as const;
@@ -65,7 +72,7 @@ const getSummary = async () => {
   const errorCount = countsByStatus.ERROR;
   const cancelledCount = countsByStatus.CANCELLED;
 
-  return {
+  return toDashboardSummaryDto({
     totalRequests,
     successCount,
     errorCount,
@@ -80,11 +87,11 @@ const getSummary = async () => {
     totalCompletionTokens: aggregateMetrics._sum.completionTokens ?? 0,
     providerCount: distinctProviders.length,
     modelCount: distinctModels.length,
-  };
+  });
 };
 
 const getRecentLogs = async (query: RecentLogsQuery) => {
-  return prisma.inferenceLog.findMany({
+  const logs = await prisma.inferenceLog.findMany({
     where: {
       status: query.status,
       provider: query.provider,
@@ -112,6 +119,8 @@ const getRecentLogs = async (query: RecentLogsQuery) => {
       createdAt: true,
     },
   });
+
+  return logs.map(toRecentInferenceLogDto);
 };
 
 type LatencyRow = {
@@ -134,13 +143,7 @@ const getLatencySeries = async (query: LatencyQuery) => {
     LIMIT ${query.limit}
   `);
 
-  return rows
-    .map((row) => ({
-      bucket: row.bucket.toISOString(),
-      averageLatencyMs: row.averageLatencyMs ?? 0,
-      requestCount: Number(row.requestCount),
-    }))
-    .reverse();
+  return rows.map(toLatencyPointDto).reverse();
 };
 
 const getStatusBreakdown = async () => {
@@ -159,10 +162,12 @@ const getStatusBreakdown = async () => {
     {},
   );
 
-  return INFERENCE_STATUSES.map((status) => ({
-    status,
-    count: countsByStatus[status] ?? 0,
-  }));
+  return INFERENCE_STATUSES.map((status) =>
+    toStatusBreakdownDto({
+      status,
+      count: countsByStatus[status] ?? 0,
+    }),
+  );
 };
 
 const getProviderBreakdown = async () => {
@@ -184,14 +189,16 @@ const getProviderBreakdown = async () => {
     },
   });
 
-  return groupedBreakdown.map((entry) => ({
-    provider: entry.provider,
-    model: entry.model,
-    requestCount: entry._count._all,
-    averageLatencyMs: Math.round(entry._avg.latencyMs ?? 0),
-    errorCount: 0,
-    totalTokens: entry._sum.totalTokens ?? 0,
-  }));
+  return groupedBreakdown.map((entry) =>
+    toProviderBreakdownDto({
+      provider: entry.provider,
+      model: entry.model,
+      requestCount: entry._count._all,
+      averageLatencyMs: Math.round(entry._avg.latencyMs ?? 0),
+      errorCount: 0,
+      totalTokens: entry._sum.totalTokens ?? 0,
+    }),
+  );
 };
 
 const attachProviderErrorCounts = async () => {

@@ -1,10 +1,16 @@
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../utils/app-error";
+import {
+  toConversationDetailDto,
+  toConversationDto,
+  toConversationStatusDto,
+  toConversationSummaryDto,
+} from "./conversation.dto";
 
 const DEFAULT_CONVERSATION_TITLE = "New conversation";
 
 const createConversation = async (title?: string) => {
-  return prisma.conversation.create({
+  const conversation = await prisma.conversation.create({
     data: {
       title: title ?? DEFAULT_CONVERSATION_TITLE,
     },
@@ -16,6 +22,8 @@ const createConversation = async (title?: string) => {
       updatedAt: true,
     },
   });
+
+  return toConversationDto(conversation);
 };
 
 const listConversations = async () => {
@@ -37,14 +45,7 @@ const listConversations = async () => {
     },
   });
 
-  return conversations.map((conversation) => ({
-    id: conversation.id,
-    title: conversation.title,
-    status: conversation.status,
-    createdAt: conversation.createdAt,
-    updatedAt: conversation.updatedAt,
-    messageCount: conversation._count.messages,
-  }));
+  return conversations.map(toConversationSummaryDto);
 };
 
 const getConversationById = async (conversationId: string) => {
@@ -76,7 +77,7 @@ const getConversationById = async (conversationId: string) => {
     throw new AppError("Conversation not found", 404);
   }
 
-  return conversation;
+  return toConversationDetailDto(conversation);
 };
 
 const cancelConversation = async (conversationId: string) => {
@@ -93,7 +94,7 @@ const cancelConversation = async (conversationId: string) => {
     throw new AppError("Conversation not found", 404);
   }
 
-  return prisma.conversation.update({
+  const updatedConversation = await prisma.conversation.update({
     where: {
       id: conversationId,
     },
@@ -105,6 +106,8 @@ const cancelConversation = async (conversationId: string) => {
       status: true,
     },
   });
+
+  return toConversationStatusDto(updatedConversation);
 };
 
 export const conversationService = {

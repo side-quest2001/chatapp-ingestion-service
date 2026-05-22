@@ -2,6 +2,7 @@ import { prisma } from "../../db/prisma";
 import { AppError } from "../../utils/app-error";
 import { loggedGenerateText } from "../llm/logged-llm-client";
 import type { ProviderName } from "../llm/llm.types";
+import { toSendMessageResultDto } from "./chat.dto";
 
 type SendMessageInput = {
   content: string;
@@ -112,10 +113,10 @@ const sendMessage = async (conversationId: string, input: SendMessageInput) => {
     },
   });
 
-  return {
+  return toSendMessageResultDto({
     userMessage,
     assistantMessage,
-  };
+  });
 };
 
 export const chatService = {

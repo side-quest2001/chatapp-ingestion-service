@@ -4,6 +4,7 @@ import { prisma } from "../../db/prisma";
 import { createPreview } from "../llm/redaction";
 import type { CreateInferenceLogBody } from "./ingestion.schema";
 import { AppError } from "../../utils/app-error";
+import { toInferenceLogDto } from "./ingestion.dto";
 
 const createInferenceLog = async (payload: CreateInferenceLogBody) => {
   let conversationId = payload.conversationId;
@@ -23,7 +24,7 @@ const createInferenceLog = async (payload: CreateInferenceLogBody) => {
     }
   }
 
-  return prisma.inferenceLog.create({
+  const inferenceLog = await prisma.inferenceLog.create({
     data: {
       conversationId,
       provider: payload.provider,
@@ -45,6 +46,8 @@ const createInferenceLog = async (payload: CreateInferenceLogBody) => {
       metadata: payload.metadata as Prisma.InputJsonObject | undefined,
     },
   });
+
+  return toInferenceLogDto(inferenceLog);
 };
 
 export const ingestionService = {
