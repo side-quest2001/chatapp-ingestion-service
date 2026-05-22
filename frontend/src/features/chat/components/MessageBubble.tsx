@@ -2,7 +2,10 @@ import type { ChatMessage } from "../../../api/types";
 import { formatMessageTime, splitMessageContent } from "../utils/messageFormatting";
 
 type MessageBubbleProps = {
-  message: ChatMessage;
+  message?: ChatMessage;
+  role?: "USER" | "ASSISTANT" | "SYSTEM";
+  content?: string;
+  pending?: boolean;
 };
 
 const renderMessageContent = (content: string) =>
@@ -30,13 +33,23 @@ const renderMessageContent = (content: string) =>
     );
   });
 
-export function MessageBubble({ message }: MessageBubbleProps) {
-  const isUser = message.role === "USER";
+export function MessageBubble({
+  message,
+  role,
+  content,
+  pending = false,
+}: MessageBubbleProps) {
+  const resolvedRole = message?.role ?? role ?? "ASSISTANT";
+  const resolvedContent = message?.content ?? content ?? "";
+  const resolvedCreatedAt = message?.createdAt ?? null;
+  const isUser = resolvedRole === "USER";
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div
+      className={`flex ${isUser ? "justify-end" : "justify-start"} animate-message-in`}
+    >
       <article
-        className={`max-w-[90%] rounded-[1.75rem] px-5 py-4 shadow-sm sm:max-w-[75%] ${
+        className={`max-w-[90%] rounded-[1.75rem] px-5 py-4 shadow-sm transition-all duration-200 ease-out sm:max-w-[75%] ${
           isUser
             ? "rounded-br-md border border-indigo-100 bg-indigo-50 text-slate-950"
             : "rounded-bl-md border border-slate-200 bg-white text-slate-900"
@@ -48,17 +61,25 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               isUser ? "text-indigo-700" : "text-slate-500"
             }`}
           >
-            {isUser ? "You" : message.role === "SYSTEM" ? "System" : "Assistant"}
+            {isUser ? "You" : resolvedRole === "SYSTEM" ? "System" : "Assistant"}
           </span>
-          <span
-            className={`text-xs ${isUser ? "text-indigo-500" : "text-slate-400"}`}
-          >
-            {formatMessageTime(message.createdAt)}
-          </span>
+          {resolvedCreatedAt ? (
+            <span
+              className={`text-xs ${isUser ? "text-indigo-500" : "text-slate-400"}`}
+            >
+              {formatMessageTime(resolvedCreatedAt)}
+            </span>
+          ) : pending ? (
+            <span
+              className={`text-xs ${isUser ? "text-indigo-500" : "text-slate-400"}`}
+            >
+              Sending...
+            </span>
+          ) : null}
         </div>
 
         <div className={`text-sm ${isUser ? "text-slate-950" : "text-slate-700"}`}>
-          {renderMessageContent(message.content)}
+          {renderMessageContent(resolvedContent)}
         </div>
       </article>
     </div>

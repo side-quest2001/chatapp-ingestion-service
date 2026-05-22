@@ -33,6 +33,9 @@ export function ChatPage() {
   const [provider, setProvider] = useState<ProviderName>("groq");
   const [model, setModel] = useState(defaultModels.groq);
   const [composerValue, setComposerValue] = useState("");
+  const [pendingUserMessageContent, setPendingUserMessageContent] = useState<
+    string | null
+  >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] =
@@ -147,15 +150,18 @@ export function ChatPage() {
     }
 
     setIsSendingMessage(true);
+    const nextPendingMessage = composerValue.trim();
+    setPendingUserMessageContent(nextPendingMessage);
 
     try {
       const response = await chatApi.sendMessage(selectedConversationId, {
-        content: composerValue.trim(),
+        content: nextPendingMessage,
         provider,
         model,
       });
 
       setComposerValue("");
+      setPendingUserMessageContent(null);
       setActiveConversation((currentConversation) => {
         if (!currentConversation || currentConversation.id !== selectedConversationId) {
           return currentConversation;
@@ -175,6 +181,7 @@ export function ChatPage() {
       await refreshConversations(selectedConversationId);
       setErrorMessage(null);
     } catch (error) {
+      setPendingUserMessageContent(null);
       const message =
         error instanceof Error ? error.message : "Failed to send message.";
       setErrorMessage(message);
@@ -285,17 +292,19 @@ export function ChatPage() {
               <div className="flex min-h-0 flex-1 flex-col">
                 {activeConversation ? (
                   isLoadingConversationDetail ? (
-                    <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6">
-                      <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-500 shadow-sm">
-                        Loading conversation...
-                      </div>
-                    </div>
+                    <ChatThread
+                      messages={[]}
+                      activeConversationId={activeConversation.id}
+                      isLoading={isLoadingConversationDetail}
+                    />
                   ) : (
                     <ChatThread
                       messages={activeConversation.messages}
                       activeConversationId={activeConversation.id}
                       isSending={isSendingMessage}
                       isLoading={isLoadingConversationDetail}
+                      pendingUserMessageContent={pendingUserMessageContent}
+                      showAssistantLoading={isSendingMessage}
                     />
                   )
                 ) : (
@@ -307,7 +316,7 @@ export function ChatPage() {
                 )}
               </div>
 
-              <div className="sticky bottom-0 shrink-0">
+              <div className="shrink-0">
                 <MessageComposer
                   value={composerValue}
                   onChange={setComposerValue}

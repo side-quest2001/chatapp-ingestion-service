@@ -31,8 +31,8 @@ export function MessageComposer({
   };
 
   return (
-    <div className="border-t border-slate-200 bg-gradient-to-t from-slate-50 via-slate-50 to-slate-50/80 px-4 pb-4 pt-3 backdrop-blur sm:px-6 sm:pb-6">
-      <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200 bg-white p-3 shadow-[0_12px_32px_-20px_rgba(15,23,42,0.28)]">
+    <div className="border-t border-slate-200 bg-white/90 px-4 py-4 backdrop-blur sm:px-6">
+      <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-3 shadow-sm shadow-slate-200/80">
         <textarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -40,11 +40,11 @@ export function MessageComposer({
           disabled={disabled || isLoading}
           placeholder="Send a message to your assistant..."
           rows={2}
-          className="min-h-[52px] max-h-40 w-full resize-none border-none bg-transparent px-3 py-2 text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+          className="min-h-[48px] max-h-32 w-full resize-none border-none bg-transparent px-2 py-2 text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
         />
 
-        <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 px-2 pt-3">
-          <div className="text-xs text-slate-500">
+        <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-100 px-2 pt-2">
+          <div className="text-xs text-slate-400">
             {statusText || "Enter to send. Shift + Enter for a new line."}
           </div>
 
@@ -52,6 +52,7 @@ export function MessageComposer({
             onClick={onSubmit}
             disabled={disabled || isLoading || !value.trim()}
             variant="primary"
+            size="md"
           >
             <SendHorizonal className="h-4 w-4" />
             {isLoading ? "Sending..." : "Send"}
