@@ -1,5 +1,8 @@
 import { RefreshCw } from "lucide-react";
 
+import { Button } from "../../../components/ui/Button";
+import { Spinner } from "../../../components/ui/Spinner";
+
 type DashboardHeaderProps = {
   onRefresh: () => void;
   isRefreshing?: boolean;
@@ -23,15 +26,15 @@ export function DashboardHeader({
         </p>
       </div>
 
-      <button
-        type="button"
+      <Button
         onClick={onRefresh}
         disabled={isRefreshing}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-300/50 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+        variant="primary"
+        className="bg-slate-950 shadow-lg shadow-slate-300/50 hover:bg-slate-900 disabled:opacity-60"
       >
-        <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+        {isRefreshing ? <Spinner /> : <RefreshCw className="h-4 w-4" />}
         {isRefreshing ? "Refreshing..." : "Refresh"}
-      </button>
+      </Button>
     </header>
   );
 }

@@ -1,14 +1,18 @@
-import type { StatusBreakdownItem } from "../../api/types";
+import { Badge } from "../../../components/ui/Badge";
+import type { StatusBreakdownItem } from "../../../api/types";
 
 type StatusBreakdownProps = {
   data: StatusBreakdownItem[];
   isLoading?: boolean;
 };
 
-const statusStyles: Record<StatusBreakdownItem["status"], string> = {
-  SUCCESS: "bg-emerald-100 text-emerald-700",
-  ERROR: "bg-rose-100 text-rose-700",
-  CANCELLED: "bg-amber-100 text-amber-700",
+const statusVariants: Record<
+  StatusBreakdownItem["status"],
+  "success" | "error" | "warning"
+> = {
+  SUCCESS: "success",
+  ERROR: "error",
+  CANCELLED: "warning",
 };
 
 export function StatusBreakdown({
@@ -43,11 +47,12 @@ export function StatusBreakdown({
                 className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${statusStyles[item.status]}`}
+                  <Badge
+                    variant={statusVariants[item.status]}
+                    className="tracking-[0.2em]"
                   >
                     {item.status}
-                  </span>
+                  </Badge>
                   <span className="text-sm font-medium text-slate-600">
                     {item.count} requests
                   </span>

@@ -1,4 +1,4 @@
-import type { ProviderBreakdownItem } from "../../api/types";
+import type { ProviderBreakdownItem } from "../../../api/types";
 
 type ProviderBreakdownTableProps = {
   data: ProviderBreakdownItem[];

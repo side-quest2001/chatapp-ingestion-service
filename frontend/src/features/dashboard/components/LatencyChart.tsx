@@ -8,7 +8,7 @@ import {
   YAxis,
 } from "recharts";
 
-import type { LatencyPoint } from "../../api/types";
+import type { LatencyPoint } from "../../../api/types";
 
 type LatencyChartProps = {
   data: LatencyPoint[];

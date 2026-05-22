@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
 
-import type { RecentInferenceLog } from "../../api/types";
+import { Badge } from "../../../components/ui/Badge";
+import type { RecentInferenceLog } from "../../../api/types";
 
 type RecentLogsTableProps = {
   logs: RecentInferenceLog[];
@@ -13,10 +14,13 @@ type RecentLogsTableProps = {
   isLoading?: boolean;
 };
 
-const statusStyles: Record<RecentInferenceLog["status"], string> = {
-  SUCCESS: "bg-emerald-100 text-emerald-700",
-  ERROR: "bg-rose-100 text-rose-700",
-  CANCELLED: "bg-amber-100 text-amber-700",
+const statusVariants: Record<
+  RecentInferenceLog["status"],
+  "success" | "error" | "warning"
+> = {
+  SUCCESS: "success",
+  ERROR: "error",
+  CANCELLED: "warning",
 };
 
 const formatTime = (value: string) =>
@@ -111,11 +115,9 @@ export function RecentLogsTable({
                     </td>
                     <td className="px-4 py-3">{log.model}</td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${statusStyles[log.status]}`}
-                      >
+                      <Badge variant={statusVariants[log.status]}>
                         {log.status}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">{log.latencyMs} ms</td>
                     <td className="px-4 py-3">{log.totalTokens ?? 0}</td>

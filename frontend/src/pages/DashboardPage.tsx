@@ -9,13 +9,13 @@ import type {
   RecentInferenceLog,
   StatusBreakdownItem,
 } from "../api/types";
-import { DashboardHeader } from "../components/dashboard/DashboardHeader";
-import { EmptyDashboardState } from "../components/dashboard/EmptyDashboardState";
-import { LatencyChart } from "../components/dashboard/LatencyChart";
-import { MetricCard } from "../components/dashboard/MetricCard";
-import { ProviderBreakdownTable } from "../components/dashboard/ProviderBreakdownTable";
-import { RecentLogsTable } from "../components/dashboard/RecentLogsTable";
-import { StatusBreakdown } from "../components/dashboard/StatusBreakdown";
+import { DashboardHeader } from "../features/dashboard/components/DashboardHeader";
+import { EmptyDashboardState } from "../features/dashboard/components/EmptyDashboardState";
+import { LatencyChart } from "../features/dashboard/components/LatencyChart";
+import { MetricCard } from "../features/dashboard/components/MetricCard";
+import { ProviderBreakdownTable } from "../features/dashboard/components/ProviderBreakdownTable";
+import { RecentLogsTable } from "../features/dashboard/components/RecentLogsTable";
+import { StatusBreakdown } from "../features/dashboard/components/StatusBreakdown";
 
 const formatNumber = (value: number) => value.toLocaleString();
 
