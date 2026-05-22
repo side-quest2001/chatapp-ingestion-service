@@ -135,4 +135,6 @@ The backend container runs Prisma migrations at startup with `prisma migrate dep
 
 ## Kubernetes Note
 
-Kubernetes manifests are not part of this final packaging task. They will be added under `/k8s` in a later deployment-focused pass.
+Kubernetes manifests are now available under `/k8s` for a simple self-hosted single-node k3s deployment.
+
+They are intentionally plain YAML rather than Helm charts so the deployment flow stays readable and assignment-friendly.

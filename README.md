@@ -61,6 +61,12 @@ To also remove the persisted Postgres volume:
 docker compose down -v
 ```
 
+## Kubernetes
+
+Kubernetes manifests are available under [k8s/](/home/user/assignments/chatapp/k8s) for a simple self-hosted deployment on a single-node k3s VPS.
+
+Docker Compose remains the recommended path for local development.
+
 ## Manual Setup
 
 ### 1. Start PostgreSQL

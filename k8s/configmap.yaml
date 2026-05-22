@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-logger-config
+  namespace: inference-logger
+data:
+  NODE_ENV: "production"
+  PORT: "4000"
+  FRONTEND_URL: "https://inference-logger.example.com"
+  DEFAULT_LLM_PROVIDER: "groq"
+  GROQ_MODEL: "llama-3.1-8b-instant"
+  # The frontend is statically built, so this value is mainly documentation
+  # unless the frontend image is rebuilt with the same API base URL.
+  VITE_API_BASE_URL: "https://inference-logger.example.com/api"
