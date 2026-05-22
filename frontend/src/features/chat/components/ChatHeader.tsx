@@ -1,6 +1,7 @@
 import { Ban, ChevronDown } from "lucide-react";
 
-import type { ConversationDetail, ProviderName } from "../../api/types";
+import { Button } from "../../../components/ui/Button";
+import type { ConversationDetail, ProviderName } from "../../../api/types";
 
 type ChatHeaderProps = {
   conversation: ConversationDetail | null;
@@ -68,18 +69,17 @@ export function ChatHeader({
             />
           </label>
 
-          <button
-            type="button"
+          <Button
             onClick={onCancelConversation}
             disabled={!conversation || isCancelled || isCancelling}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-4 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+            variant="danger"
           >
             <Ban className="h-4 w-4" />
             <span className="hidden sm:inline">
               {isCancelling ? "Cancelling..." : "Cancel conversation"}
             </span>
             <span className="sm:hidden">{isCancelling ? "..." : "Cancel"}</span>
-          </button>
+          </Button>
         </div>
       </div>
     </header>

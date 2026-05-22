@@ -1,49 +1,34 @@
-import type { ChatMessage } from "../../api/types";
+import type { ChatMessage } from "../../../api/types";
+import { formatMessageTime, splitMessageContent } from "../utils/messageFormatting";
 
 type MessageBubbleProps = {
   message: ChatMessage;
 };
 
-const formatMessageTime = (value: string) =>
-  new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-
-const renderMessageContent = (content: string) => {
-  const segments = content.split(/```/g);
-
-  return segments.map((segment, index) => {
-    const isCode = index % 2 === 1;
-
-    if (!isCode) {
+const renderMessageContent = (content: string) =>
+  splitMessageContent(content).map((segment, index) => {
+    if (segment.type === "text") {
       return (
-        <p key={`${segment}-${index}`} className="whitespace-pre-wrap leading-7">
-          {segment}
+        <p key={`text-${index}`} className="whitespace-pre-wrap leading-7">
+          {segment.content}
         </p>
       );
     }
 
-    const codeLines = segment.split("\n");
-    const firstLine = codeLines[0]?.trim();
-    const language = firstLine && !firstLine.includes(" ") ? firstLine : "";
-    const code = language ? codeLines.slice(1).join("\n") : segment;
-
     return (
       <div
-        key={`${segment}-${index}`}
+        key={`code-${index}`}
         className="my-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
       >
         <div className="border-b border-slate-200 px-4 py-2 text-[0.7rem] uppercase tracking-[0.22em] text-slate-500">
-          {language || "Code"}
+          {segment.language || "Code"}
         </div>
         <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-slate-700">
-          <code>{code.trim()}</code>
+          <code>{segment.content}</code>
         </pre>
       </div>
     );
   });
-};
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "USER";

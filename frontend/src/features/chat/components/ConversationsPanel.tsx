@@ -1,6 +1,8 @@
 import { Plus, Search } from "lucide-react";
 
-import type { ConversationSummary } from "../../api/types";
+import { Button } from "../../../components/ui/Button";
+import { EmptyState } from "../../../components/ui/EmptyState";
+import type { ConversationSummary } from "../../../api/types";
 import { ConversationListItem } from "./ConversationListItem";
 
 type ConversationsPanelProps = {
@@ -35,14 +37,15 @@ export function ConversationsPanel({
             </p>
           </div>
 
-          <button
-            type="button"
+          <Button
             onClick={onCreateConversation}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
             aria-label="Create conversation"
+            variant="secondary"
+            size="sm"
+            className="w-9 px-0 shadow-sm"
           >
             <Plus className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-400">
@@ -64,18 +67,17 @@ export function ConversationsPanel({
         ) : null}
 
         {!isLoading && conversations.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
-            <p className="text-sm font-medium text-slate-900">No conversations yet</p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Create a conversation to start chatting.
-            </p>
-            <button
-              type="button"
-              onClick={onCreateConversation}
-              className="mt-5 inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
-            >
-              New conversation
-            </button>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8">
+            <EmptyState
+              title="No conversations yet"
+              description="Create a conversation to start chatting."
+              className="mx-auto max-w-sm"
+              action={
+                <Button onClick={onCreateConversation} variant="primary">
+                  New conversation
+                </Button>
+              }
+            />
           </div>
         ) : null}
 

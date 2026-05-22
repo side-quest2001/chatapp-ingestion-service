@@ -1,6 +1,8 @@
 import { Clock3, MessageSquareMore } from "lucide-react";
 
-import type { ConversationStatus, ConversationSummary } from "../../api/types";
+import { Badge } from "../../../components/ui/Badge";
+import { Button } from "../../../components/ui/Button";
+import type { ConversationStatus, ConversationSummary } from "../../../api/types";
 
 const statusLabel: Record<ConversationStatus, string> = {
   ACTIVE: "Active",
@@ -28,9 +30,9 @@ export function ConversationListItem({
   onSelect,
 }: ConversationListItemProps) {
   return (
-    <button
-      type="button"
+    <Button
       onClick={() => onSelect(conversation.id)}
+      variant="ghost"
       className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
         isSelected
           ? "border-indigo-200 bg-indigo-50 shadow-sm shadow-indigo-100/80"
@@ -47,9 +49,12 @@ export function ConversationListItem({
           </p>
         </div>
 
-        <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-500">
+        <Badge
+          variant="neutral"
+          className="px-2 py-1 text-[11px] normal-case tracking-normal"
+        >
           {conversation.messageCount}
-        </span>
+        </Badge>
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
@@ -62,6 +67,6 @@ export function ConversationListItem({
           {conversation.messageCount} messages
         </span>
       </div>
-    </button>
+    </Button>
   );
 }

@@ -1,7 +1,7 @@
 import { MessageSquareLock } from "lucide-react";
 import { useState } from "react";
 
-import { AppSidebar, type AppView } from "./components/app-shell/AppSidebar";
+import { AppSidebar, type AppView } from "./components/layout/AppSidebar";
 import { ChatPage } from "./pages/ChatPage";
 import { DashboardPage } from "./pages/DashboardPage";
 

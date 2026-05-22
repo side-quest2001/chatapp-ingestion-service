@@ -8,6 +8,8 @@ import {
   Settings,
 } from "lucide-react";
 
+import { Button } from "../ui/Button";
+
 export type AppView = "chat" | "conversations" | "logs" | "dashboard" | "settings";
 
 const navItems = [
@@ -64,10 +66,10 @@ export function AppSidebar({ selectedView, onSelectView }: AppSidebarProps) {
             const Icon = item.icon;
 
             return (
-              <button
+              <Button
                 key={item.label}
-                type="button"
                 onClick={() => onSelectView(item.key)}
+                variant="ghost"
                 className={`group flex w-full items-center justify-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition lg:justify-start ${
                   item.key === selectedView
                     ? "bg-indigo-500/15 text-white ring-1 ring-inset ring-indigo-400/20"
@@ -77,7 +79,7 @@ export function AppSidebar({ selectedView, onSelectView }: AppSidebarProps) {
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="hidden lg:inline">{item.label}</span>
-              </button>
+              </Button>
             );
           })}
         </div>

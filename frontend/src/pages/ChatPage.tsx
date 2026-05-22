@@ -3,16 +3,17 @@ import { useEffect, useState } from "react";
 
 import { chatApi } from "../api/chat.api";
 import { conversationsApi } from "../api/conversations.api";
+import { Button } from "../components/ui/Button";
 import type {
   ConversationDetail,
   ConversationSummary,
   ProviderName,
 } from "../api/types";
-import { ChatHeader } from "../components/chat/ChatHeader";
-import { ChatThread } from "../components/chat/ChatThread";
-import { ConversationsPanel } from "../components/chat/ConversationsPanel";
-import { EmptyChatState } from "../components/chat/EmptyChatState";
-import { MessageComposer } from "../components/chat/MessageComposer";
+import { ChatHeader } from "../features/chat/components/ChatHeader";
+import { ChatThread } from "../features/chat/components/ChatThread";
+import { ConversationsPanel } from "../features/chat/components/ConversationsPanel";
+import { EmptyChatState } from "../features/chat/components/EmptyChatState";
+import { MessageComposer } from "../features/chat/components/MessageComposer";
 
 const defaultModels: Record<ProviderName, string> = {
   groq: "llama-3.1-8b-instant",
@@ -231,14 +232,10 @@ export function ChatPage() {
               </p>
             </div>
             {!showMobileConversationList ? (
-              <button
-                type="button"
-                onClick={handleBackToConversations}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"
-              >
+              <Button onClick={handleBackToConversations} variant="secondary">
                 <ArrowLeft className="h-4 w-4" />
                 Back
-              </button>
+              </Button>
             ) : null}
           </div>
         </header>
@@ -294,7 +291,12 @@ export function ChatPage() {
                       </div>
                     </div>
                   ) : (
-                    <ChatThread messages={activeConversation.messages} />
+                    <ChatThread
+                      messages={activeConversation.messages}
+                      activeConversationId={activeConversation.id}
+                      isSending={isSendingMessage}
+                      isLoading={isLoadingConversationDetail}
+                    />
                   )
                 ) : (
                   <EmptyChatState

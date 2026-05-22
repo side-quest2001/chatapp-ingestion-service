@@ -1,6 +1,8 @@
 import type { KeyboardEvent } from "react";
 import { SendHorizonal } from "lucide-react";
 
+import { Button } from "../../../components/ui/Button";
+
 type MessageComposerProps = {
   value: string;
   disabled?: boolean;
@@ -46,15 +48,14 @@ export function MessageComposer({
             {statusText || "Enter to send. Shift + Enter for a new line."}
           </div>
 
-          <button
-            type="button"
+          <Button
             onClick={onSubmit}
             disabled={disabled || isLoading || !value.trim()}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            variant="primary"
           >
             <SendHorizonal className="h-4 w-4" />
             {isLoading ? "Sending..." : "Send"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
