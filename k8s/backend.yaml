@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ghcr.io/<your-github-username>/llm-inference-logger-backend:latest
+          image: tushar987654321/llm-inference-logger-backend:latest
           imagePullPolicy: Always
           command:
             - sh

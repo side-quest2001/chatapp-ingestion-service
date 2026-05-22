@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/<your-github-username>/llm-inference-logger-frontend:latest
+          image: tushar987654321/llm-inference-logger-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

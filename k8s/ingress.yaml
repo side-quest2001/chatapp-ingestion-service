@@ -8,8 +8,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: inference-logger.example.com
-      http:
+    - http:
         paths:
           - path: /api
             pathType: Prefix
@@ -25,8 +24,3 @@ spec:
                 name: frontend
                 port:
                   number: 80
-  # tls:
-  #   - hosts:
-  #       - inference-logger.example.com
-  #     secretName: inference-logger-tls
-  # Add cert-manager or a manual TLS secret later if HTTPS termination is required.
