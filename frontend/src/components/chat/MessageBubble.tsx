@@ -32,12 +32,12 @@ const renderMessageContent = (content: string) => {
     return (
       <div
         key={`${segment}-${index}`}
-        className="my-3 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80"
+        className="my-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
       >
-        <div className="border-b border-white/10 px-4 py-2 text-[0.7rem] uppercase tracking-[0.28em] text-cyan-300">
+        <div className="border-b border-slate-200 px-4 py-2 text-[0.7rem] uppercase tracking-[0.22em] text-slate-500">
           {language || "Code"}
         </div>
-        <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-slate-200">
+        <pre className="overflow-x-auto px-4 py-4 text-sm leading-6 text-slate-700">
           <code>{code.trim()}</code>
         </pre>
       </div>
@@ -51,28 +51,28 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <article
-        className={`max-w-[78%] rounded-[2rem] px-5 py-4 shadow-xl ${
+        className={`max-w-[90%] rounded-[1.75rem] px-5 py-4 shadow-sm sm:max-w-[75%] ${
           isUser
-            ? "rounded-br-md bg-cyan-300 text-slate-950 shadow-cyan-950/35"
-            : "rounded-bl-md border border-white/10 bg-white/[0.04] text-slate-100 shadow-slate-950/25"
+            ? "rounded-br-md border border-indigo-100 bg-indigo-50 text-slate-950"
+            : "rounded-bl-md border border-slate-200 bg-white text-slate-900"
         }`}
       >
         <div className="mb-3 flex items-center gap-3">
           <span
             className={`text-[0.7rem] font-semibold uppercase tracking-[0.28em] ${
-              isUser ? "text-slate-900/70" : "text-cyan-300"
+              isUser ? "text-indigo-700" : "text-slate-500"
             }`}
           >
             {isUser ? "You" : message.role === "SYSTEM" ? "System" : "Assistant"}
           </span>
           <span
-            className={`text-xs ${isUser ? "text-slate-900/60" : "text-slate-500"}`}
+            className={`text-xs ${isUser ? "text-indigo-500" : "text-slate-400"}`}
           >
             {formatMessageTime(message.createdAt)}
           </span>
         </div>
 
-        <div className={`text-sm ${isUser ? "text-slate-950" : "text-slate-200"}`}>
+        <div className={`text-sm ${isUser ? "text-slate-950" : "text-slate-700"}`}>
           {renderMessageContent(message.content)}
         </div>
       </article>
