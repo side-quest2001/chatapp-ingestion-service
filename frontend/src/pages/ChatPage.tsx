@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { chatApi } from "../api/chat.api";
@@ -20,6 +21,7 @@ const defaultModels: Record<ProviderName, string> = {
 };
 
 export function ChatPage() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [searchValue, setSearchValue] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
     null,
@@ -47,6 +49,8 @@ export function ChatPage() {
     !activeConversation ||
     activeConversation.status === "CANCELLED" ||
     isSendingMessage;
+  const showMobileConversationList = isMobile && !selectedConversationId;
+  const showChatArea = !isMobile || Boolean(selectedConversationId);
 
   const loadConversationDetail = async (conversationId: string) => {
     setIsLoadingConversationDetail(true);
@@ -74,13 +78,13 @@ export function ChatPage() {
       const nextConversations = await conversationsApi.list();
       setConversations(nextConversations);
 
+      const hasExistingSelection = nextConversations.some(
+        (conversation) => conversation.id === selectedConversationId,
+      );
+      const fallbackConversationId = isMobile ? null : (nextConversations[0]?.id ?? null);
       const nextSelectedId =
         preferredConversationId ??
-        (nextConversations.some(
-          (conversation) => conversation.id === selectedConversationId,
-        )
-          ? selectedConversationId
-          : nextConversations[0]?.id ?? null);
+        (hasExistingSelection ? selectedConversationId : fallbackConversationId);
 
       if (nextSelectedId) {
         await loadConversationDetail(nextSelectedId);
@@ -100,8 +104,22 @@ export function ChatPage() {
   };
 
   useEffect(() => {
-    void refreshConversations();
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncViewport = (event?: MediaQueryListEvent) => {
+      setIsMobile(event ? event.matches : mediaQuery.matches);
+    };
+
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncViewport);
+    };
   }, []);
+
+  useEffect(() => {
+    void refreshConversations();
+  }, [isMobile]);
 
   const handleCreateConversation = async () => {
     setIsCreatingConversation(true);
@@ -194,78 +212,120 @@ export function ChatPage() {
     }
   };
 
+  const handleBackToConversations = () => {
+    setSelectedConversationId(null);
+    setActiveConversation(null);
+    setComposerValue("");
+    setErrorMessage(null);
+  };
+
   return (
-    <section className="flex min-w-0 flex-1 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.95))]">
-      <ConversationsPanel
-        conversations={filteredConversations}
-        searchValue={searchValue}
-        selectedConversationId={selectedConversationId}
-        onSearchChange={setSearchValue}
-        onSelectConversation={(conversationId) => {
-          void loadConversationDetail(conversationId);
-        }}
-        onCreateConversation={() => {
-          void handleCreateConversation();
-        }}
-        isLoading={isLoadingConversations || isCreatingConversation}
-      />
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <ChatHeader
-          conversation={activeConversation}
-          provider={provider}
-          model={model}
-          onProviderChange={(nextProvider) => {
-            setProvider(nextProvider);
-            setModel(defaultModels[nextProvider]);
-          }}
-          onModelChange={setModel}
-          onCancelConversation={() => {
-            void handleCancelConversation();
-          }}
-          isCancelling={isCancellingConversation}
-        />
-
-        <div className="flex min-h-0 flex-1 flex-col justify-between px-8 py-8">
-          {errorMessage ? (
-            <div className="mb-5 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-              {errorMessage}
+    <section className="flex h-full min-w-0 flex-1 bg-slate-50">
+      <div className="flex h-full min-w-0 flex-1 flex-col md:flex-row">
+        <header className="border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-950">Inference Logger</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                {showMobileConversationList ? "Conversations" : "Chat"}
+              </p>
             </div>
-          ) : null}
+            {!showMobileConversationList ? (
+              <button
+                type="button"
+                onClick={handleBackToConversations}
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </button>
+            ) : null}
+          </div>
+        </header>
 
-          {activeConversation ? (
-            isLoadingConversationDetail ? (
-              <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 text-sm text-slate-400">
-                Loading conversation...
-              </div>
-            ) : (
-              <ChatThread messages={activeConversation.messages} />
-            )
-          ) : (
-            <EmptyChatState
-              onCreateConversation={() => {
-                void handleCreateConversation();
-              }}
-            />
-          )}
-
-          <MessageComposer
-            value={composerValue}
-            onChange={setComposerValue}
-            onSubmit={() => {
-              void handleSendMessage();
+        {(!isMobile || showMobileConversationList) ? (
+          <ConversationsPanel
+            conversations={filteredConversations}
+            searchValue={searchValue}
+            selectedConversationId={selectedConversationId}
+            onSearchChange={setSearchValue}
+            onSelectConversation={(conversationId) => {
+              void loadConversationDetail(conversationId);
             }}
-            disabled={composerDisabled}
-            isLoading={isSendingMessage}
-            statusText={
-              activeConversation?.status === "CANCELLED"
-                ? "This conversation is cancelled. Messaging is disabled."
-                : !activeConversation
-                  ? "Create a conversation to start chatting."
-                : null
-            }
+            onCreateConversation={() => {
+              void handleCreateConversation();
+            }}
+            isLoading={isLoadingConversations || isCreatingConversation}
           />
-        </div>
+        ) : null}
+
+        {showChatArea ? (
+          <div className="flex min-w-0 flex-1 flex-col">
+            <ChatHeader
+              conversation={activeConversation}
+              provider={provider}
+              model={model}
+              onProviderChange={(nextProvider) => {
+                setProvider(nextProvider);
+                setModel(defaultModels[nextProvider]);
+              }}
+              onModelChange={setModel}
+              onCancelConversation={() => {
+                void handleCancelConversation();
+              }}
+              isCancelling={isCancellingConversation}
+            />
+
+            <div className="flex min-h-0 flex-1 flex-col">
+              {errorMessage ? (
+                <div className="px-4 pt-4 sm:px-6">
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {errorMessage}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex min-h-0 flex-1 flex-col">
+                {activeConversation ? (
+                  isLoadingConversationDetail ? (
+                    <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6">
+                      <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-500 shadow-sm">
+                        Loading conversation...
+                      </div>
+                    </div>
+                  ) : (
+                    <ChatThread messages={activeConversation.messages} />
+                  )
+                ) : (
+                  <EmptyChatState
+                    onCreateConversation={() => {
+                      void handleCreateConversation();
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className="sticky bottom-0 shrink-0">
+                <MessageComposer
+                  value={composerValue}
+                  onChange={setComposerValue}
+                  onSubmit={() => {
+                    void handleSendMessage();
+                  }}
+                  disabled={composerDisabled}
+                  isLoading={isSendingMessage}
+                  statusText={
+                    activeConversation?.status === "CANCELLED"
+                      ? "This conversation is cancelled. Messaging is disabled."
+                      : !activeConversation
+                        ? "Create a conversation to start chatting."
+                        : null
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

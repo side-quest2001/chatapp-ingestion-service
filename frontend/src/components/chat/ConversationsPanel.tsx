@@ -23,62 +23,74 @@ export function ConversationsPanel({
   onCreateConversation,
 }: ConversationsPanelProps) {
   return (
-    <aside className="flex h-full w-[360px] shrink-0 flex-col border-r border-white/10 bg-slate-900/70 p-5">
-      <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-slate-950/30">
+    <aside className="flex h-full min-w-0 flex-col bg-white md:w-80 md:shrink-0 md:border-r md:border-slate-200 lg:w-[340px]">
+      <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-950">
               Conversations
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-              Thread library
             </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Resume a thread or start something new.
+            </p>
           </div>
 
           <button
             type="button"
             onClick={onCreateConversation}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:scale-[1.02]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
             aria-label="Create conversation"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
           </button>
         </div>
 
-        <label className="mt-5 flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-400">
+        <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-400">
           <Search className="h-4 w-4" />
           <input
             value={searchValue}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Search by title"
-            className="w-full border-none bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
+            className="w-full border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
         </label>
       </div>
 
-      <div className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4">
         {isLoading ? (
-          <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
             Loading conversations...
           </div>
         ) : null}
 
         {!isLoading && conversations.length === 0 ? (
-          <div className="rounded-[1.6rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm leading-6 text-slate-400">
-            No conversations yet. Create one to start chatting.
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
+            <p className="text-sm font-medium text-slate-900">No conversations yet</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Create a conversation to start chatting.
+            </p>
+            <button
+              type="button"
+              onClick={onCreateConversation}
+              className="mt-5 inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            >
+              New conversation
+            </button>
           </div>
         ) : null}
 
-        {!isLoading
-          ? conversations.map((conversation) => (
+        {!isLoading ? (
+          <div className="space-y-2">
+            {conversations.map((conversation) => (
               <ConversationListItem
                 key={conversation.id}
                 conversation={conversation}
                 isSelected={conversation.id === selectedConversationId}
                 onSelect={onSelectConversation}
               />
-            ))
-          : null}
+            ))}
+          </div>
+        ) : null}
       </div>
     </aside>
   );
