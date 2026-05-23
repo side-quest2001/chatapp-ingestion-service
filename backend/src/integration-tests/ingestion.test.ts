@@ -2,7 +2,23 @@ import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { app } from "../app";
+import { publishInferenceLogCreated } from "../modules/events/inference-log.events";
 import { cleanupDatabase, prisma } from "./test-helpers";
+
+const waitFor = async (assertion: () => Promise<void>, timeoutMs = 1500) => {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      await assertion();
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+
+  await assertion();
+};
 
 describe("ingestion API", () => {
   beforeEach(async () => {
@@ -66,5 +82,40 @@ describe("ingestion API", () => {
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
     expect(response.body.message).toEqual(expect.any(String));
+  });
+
+  it("persists emitted inference log events through the in-process subscriber", async () => {
+    publishInferenceLogCreated({
+      provider: "groq",
+      model: "llama-3.1-8b-instant",
+      status: "SUCCESS",
+      latencyMs: 120,
+      inputPreview: "user: hello demo event bus",
+      outputPreview: "assistant: hi from the async logger",
+      promptTokens: 12,
+      completionTokens: 18,
+      totalTokens: 30,
+      startedAt: new Date("2026-05-23T12:00:00.000Z"),
+      completedAt: new Date("2026-05-23T12:00:01.000Z"),
+      metadata: {
+        messageCount: 2,
+        source: "event-test",
+      },
+    });
+
+    await waitFor(async () => {
+      const storedLog = await prisma.inferenceLog.findFirst({
+        where: {
+          model: "llama-3.1-8b-instant",
+          provider: "groq",
+        },
+      });
+
+      expect(storedLog).not.toBeNull();
+      expect(storedLog?.metadata).toMatchObject({
+        messageCount: 2,
+        source: "event-test",
+      });
+    });
   });
 });

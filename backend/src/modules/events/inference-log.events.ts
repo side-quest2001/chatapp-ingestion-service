@@ -12,7 +12,9 @@ const eventBus = new TypedEventBus<AppEvents>();
 let subscribersInitialized = false;
 
 const publishInferenceLogCreated = (payload: CreateInferenceLogBody) => {
-  eventBus.emit(INFERENCE_LOG_CREATED_EVENT, payload);
+  queueMicrotask(() => {
+    eventBus.emit(INFERENCE_LOG_CREATED_EVENT, payload);
+  });
 };
 
 const initializeInferenceLogSubscribers = () => {
