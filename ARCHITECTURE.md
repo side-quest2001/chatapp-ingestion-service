@@ -22,18 +22,43 @@ The backend follows a pragmatic route-to-service structure:
 
 This keeps controllers thin without introducing a heavier repository layer.
 
-## Ingestion Flow
+## Chat Flows
+
+### Non-Streaming Flow
 
 1. A chat request reaches the chat service.
 2. The chat service validates conversation state and persists the user message.
 3. The chat service calls a custom logged LLM wrapper.
 4. That wrapper invokes the provider through the Vercel AI SDK.
 5. The wrapper collects provider/model/timing/token metadata.
-6. It sends the metadata to the ingestion module.
-7. The ingestion service redacts previews and stores a normalized `InferenceLog`.
-8. The chat service stores the assistant response and updates the conversation timestamp.
+6. It emits an inference log event.
+7. The chat service stores the assistant response and updates the conversation timestamp.
+8. The ingestion subscriber redacts previews and stores a normalized `InferenceLog`.
 
 This lets the app separate user-facing messages from operational analytics.
+
+### Streaming Flow
+
+1. A streaming request reaches `POST /api/chat/:conversationId/stream`.
+2. The chat service validates conversation state and persists the user message before calling the model.
+3. The backend starts a `streamText` request through the Vercel AI SDK.
+4. The API returns newline-delimited JSON events to the client as text chunks arrive.
+5. The frontend appends the user message immediately and progressively fills an assistant bubble while chunks stream in.
+6. After the stream completes, the backend stores the final assistant message, emits a success inference-log event, and sends a final `done` event.
+7. If the provider fails mid-stream, the backend emits an error inference-log event and returns a user-safe streamed error event without breaking the rest of the app.
+
+The original non-streaming endpoint remains intact for clients that prefer a one-shot response.
+
+## Event-Based Ingestion Flow
+
+Inference logging now passes through a lightweight in-process event bus:
+
+1. Chat code and the logged LLM wrapper publish `inference.log.created`.
+2. A subscriber listens for that event during app bootstrap.
+3. The subscriber calls the ingestion service to validate, redact, and persist the log.
+4. If persistence fails, the error is logged but the user-facing chat response continues.
+
+This gives the codebase an event-driven boundary without adding deployment-heavy infrastructure.
 
 ## Logging Strategy
 
@@ -100,7 +125,8 @@ The chat workspace and dashboard are intentionally distinct views:
 
 For the assignment, synchronous request handling is enough. If the system grew, likely next steps would be:
 
-- async ingestion with a queue
+- replace the in-process event bus with Kafka, NATS, BullMQ, SQS, or another external broker
+- fan out ingestion subscribers independently from chat API instances
 - read-optimized analytics tables or materialized views
 - pagination for recent logs and long conversations
 - frontend bundle splitting

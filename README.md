@@ -7,7 +7,9 @@ The app includes:
 - a chat workspace for creating and resuming conversations
 - a backend API for conversations, chat, ingestion, and analytics
 - structured inference logging with preview redaction
+- streaming chat responses with progressive UI updates
 - a dashboard for request volume, latency, provider mix, and recent logs
+- an in-process event bus boundary for ingestion logging
 - Docker Compose packaging for one-command local setup
 
 ## Features
@@ -15,8 +17,10 @@ The app includes:
 - Multi-conversation chat workflow with cancel protection
 - LLM provider abstraction through the Vercel AI SDK
 - Demo-ready Groq integration, with multi-provider-ready architecture for OpenAI and DeepSeek
-- Logged LLM wrapper that captures metadata and sends it to the ingestion module
+- Logged LLM wrapper that captures metadata and emits inference log events
 - Redacted log previews for emails, Indian phone numbers, and token-like secrets
+- Streaming chat endpoint for progressive assistant responses
+- Lightweight event-based ingestion architecture using Node's `EventEmitter`
 - Dashboard views for summary metrics, status mix, provider/model breakdown, latency trends, and recent requests
 - Prisma-backed PostgreSQL persistence
 
@@ -159,6 +163,7 @@ Main endpoints:
 - `GET /conversations/:conversationId`
 - `PATCH /conversations/:conversationId/cancel`
 - `POST /chat/:conversationId/messages`
+- `POST /chat/:conversationId/stream`
 - `POST /ingestion/inference-logs`
 - `GET /dashboard/summary`
 - `GET /dashboard/recent-logs`
@@ -167,6 +172,26 @@ Main endpoints:
 - `GET /dashboard/provider-breakdown`
 
 More backend endpoint notes are in [backend/API.md](/home/user/assignments/chatapp/backend/API.md).
+
+### Streaming Endpoint
+
+`POST /api/chat/:conversationId/stream` accepts the same body as the existing send-message endpoint and returns newline-delimited JSON events over a streamed HTTP response:
+
+- `{"type":"chunk","text":"..."}`
+- `{"type":"done","userMessage":{...},"assistantMessage":{...}}`
+- `{"type":"error","message":"LLM request failed. Please try again."}`
+
+The original `POST /api/chat/:conversationId/messages` flow remains available and unchanged for non-streaming clients.
+
+### Event-Based Ingestion
+
+Inference logging now crosses a lightweight event boundary before persistence:
+
+- chat and LLM modules emit `inference.log.created`
+- an in-process `EventEmitter` subscriber persists logs through the ingestion service
+- log persistence failures are isolated so they do not fail the chat response
+
+This keeps the assignment deployment simple today while preserving a clean boundary that could later be replaced by Kafka, NATS, BullMQ, SQS, or another external queue/broker.
 
 ## Schema Design Decisions
 
@@ -186,6 +211,8 @@ More backend endpoint notes are in [backend/API.md](/home/user/assignments/chata
 
 - Multi-provider-ready LLM architecture using the Vercel AI SDK abstraction
 - Custom logged wrapper around provider calls for usage metadata capture
+- Streaming chat responses with progressive frontend rendering
+- Lightweight in-process event bus for async ingestion logging
 - Preview redaction for common PII and secret patterns
 - Lightweight dashboard analytics over the ingestion table
 - Backend integration test coverage
