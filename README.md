@@ -117,6 +117,10 @@ Backend local URL:
 
 ![Observability Dashboard](./frontend/src/assets/Screenshot%202026-05-23%20180336.png)
 
+### Additional Dashboard View
+
+![Additional Dashboard View](<./frontend/src/assets/Screenshot 2026-05-23 180351.png>)
+
 ## Environment Variables
 
 ### Backend
