@@ -107,6 +107,16 @@ Backend local URL:
 
 - `http://localhost:4000`
 
+## Screenshots
+
+### Chat UI
+
+![Chat UI](./frontend/src/assets/Screenshot%202026-05-23%20180313.png)
+
+### Observability Dashboard
+
+![Observability Dashboard](./frontend/src/assets/Screenshot%202026-05-23%20180336.png)
+
 ## Environment Variables
 
 ### Backend
