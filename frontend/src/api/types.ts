@@ -43,6 +43,27 @@ export type SendMessageResponse = {
   assistantMessage: ChatMessage;
 };
 
+export type ChatStreamChunkEvent = {
+  type: "chunk";
+  text: string;
+};
+
+export type ChatStreamDoneEvent = {
+  type: "done";
+  userMessage: ChatMessage;
+  assistantMessage: ChatMessage;
+};
+
+export type ChatStreamErrorEvent = {
+  type: "error";
+  message: string;
+};
+
+export type ChatStreamEvent =
+  | ChatStreamChunkEvent
+  | ChatStreamDoneEvent
+  | ChatStreamErrorEvent;
+
 export type DashboardSummary = {
   totalRequests: number;
   successCount: number;

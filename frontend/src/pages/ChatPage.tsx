@@ -36,6 +36,9 @@ export function ChatPage() {
   const [pendingUserMessageContent, setPendingUserMessageContent] = useState<
     string | null
   >(null);
+  const [streamingAssistantContent, setStreamingAssistantContent] = useState<
+    string | null
+  >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] =
@@ -152,16 +155,50 @@ export function ChatPage() {
     setIsSendingMessage(true);
     const nextPendingMessage = composerValue.trim();
     setPendingUserMessageContent(nextPendingMessage);
+    setStreamingAssistantContent("");
 
     try {
-      const response = await chatApi.sendMessage(selectedConversationId, {
-        content: nextPendingMessage,
-        provider,
-        model,
+      const response = await new Promise<ConversationDetail["messages"][number][]>((resolve, reject) => {
+        let assistantText = "";
+        let didReceiveDone = false;
+        let didReceiveError = false;
+
+        void chatApi
+          .streamMessage(
+            selectedConversationId,
+            {
+              content: nextPendingMessage,
+              provider,
+              model,
+            },
+            {
+              onChunk: (text) => {
+                assistantText += text;
+                setStreamingAssistantContent(assistantText);
+              },
+              onDone: (result) => {
+                didReceiveDone = true;
+                resolve([result.userMessage, result.assistantMessage]);
+              },
+              onError: (message) => {
+                didReceiveError = true;
+                reject(new Error(message));
+              },
+            },
+          )
+          .then(() => {
+            if (!didReceiveDone && !didReceiveError) {
+              reject(new Error("Streaming ended before a final response arrived."));
+            }
+          })
+          .catch((error) => {
+            reject(error);
+          });
       });
 
       setComposerValue("");
       setPendingUserMessageContent(null);
+      setStreamingAssistantContent(null);
       setActiveConversation((currentConversation) => {
         if (!currentConversation || currentConversation.id !== selectedConversationId) {
           return currentConversation;
@@ -169,12 +206,8 @@ export function ChatPage() {
 
         return {
           ...currentConversation,
-          messages: [
-            ...currentConversation.messages,
-            response.userMessage,
-            response.assistantMessage,
-          ],
-          updatedAt: response.assistantMessage.createdAt,
+          messages: [...currentConversation.messages, ...response],
+          updatedAt: response[1].createdAt,
         };
       });
 
@@ -182,6 +215,14 @@ export function ChatPage() {
       setErrorMessage(null);
     } catch (error) {
       setPendingUserMessageContent(null);
+      setStreamingAssistantContent(null);
+
+      try {
+        await refreshConversations(selectedConversationId);
+      } catch {
+        // Keep the original streaming error visible if the refresh also fails.
+      }
+
       const message =
         error instanceof Error ? error.message : "Failed to send message.";
       setErrorMessage(message);
@@ -224,6 +265,8 @@ export function ChatPage() {
     setSelectedConversationId(null);
     setActiveConversation(null);
     setComposerValue("");
+    setPendingUserMessageContent(null);
+    setStreamingAssistantContent(null);
     setErrorMessage(null);
   };
 
@@ -304,7 +347,10 @@ export function ChatPage() {
                       isSending={isSendingMessage}
                       isLoading={isLoadingConversationDetail}
                       pendingUserMessageContent={pendingUserMessageContent}
-                      showAssistantLoading={isSendingMessage}
+                      streamingAssistantContent={streamingAssistantContent}
+                      showAssistantLoading={
+                        isSendingMessage && streamingAssistantContent === null
+                      }
                     />
                   )
                 ) : (

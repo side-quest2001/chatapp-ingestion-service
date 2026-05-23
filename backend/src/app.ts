@@ -8,8 +8,11 @@ import { requestLoggerMiddleware } from "./middleware/request-logger.middleware"
 import { chatRouter } from "./modules/chat/chat.routes";
 import { conversationRouter } from "./modules/conversations/conversation.routes";
 import { dashboardRouter } from "./modules/dashboard/dashboard.routes";
+import { initializeInferenceLogSubscribers } from "./modules/events/inference-log.events";
 import { ingestionRouter } from "./modules/ingestion/ingestion.routes";
 import { healthRouter } from "./routes/health.routes";
+
+initializeInferenceLogSubscribers();
 
 const app = express();
 

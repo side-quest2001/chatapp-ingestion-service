@@ -1,8 +1,8 @@
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../utils/app-error";
-import { loggedGenerateText } from "../llm/logged-llm-client";
+import { createLoggedTextStream, loggedGenerateText } from "../llm/logged-llm-client";
 import type { ProviderName } from "../llm/llm.types";
-import { toSendMessageResultDto } from "./chat.dto";
+import { toChatMessageDto, toSendMessageResultDto, toStreamDoneDto } from "./chat.dto";
 
 type SendMessageInput = {
   content: string;
@@ -10,7 +10,7 @@ type SendMessageInput = {
   model?: string;
 };
 
-const sendMessage = async (conversationId: string, input: SendMessageInput) => {
+const getConversationForReply = async (conversationId: string) => {
   const conversation = await prisma.conversation.findUnique({
     where: {
       id: conversationId,
@@ -29,20 +29,10 @@ const sendMessage = async (conversationId: string, input: SendMessageInput) => {
     throw new AppError("Cancelled conversations cannot accept new messages", 400);
   }
 
-  const userMessage = await prisma.chatMessage.create({
-    data: {
-      conversationId,
-      role: "USER",
-      content: input.content,
-    },
-    select: {
-      id: true,
-      role: true,
-      content: true,
-      createdAt: true,
-    },
-  });
+  return conversation;
+};
 
+const markConversationUpdated = async (conversationId: string) => {
   await prisma.conversation.update({
     where: {
       id: conversationId,
@@ -51,7 +41,9 @@ const sendMessage = async (conversationId: string, input: SendMessageInput) => {
       updatedAt: new Date(),
     },
   });
+};
 
+const buildLlmMessages = async (conversationId: string) => {
   const recentMessages = await prisma.chatMessage.findMany({
     where: {
       conversationId,
@@ -66,7 +58,7 @@ const sendMessage = async (conversationId: string, input: SendMessageInput) => {
     },
   });
 
-  const llmMessages = [
+  return [
     {
       role: "system" as const,
       content: "You are a concise helpful assistant.",
@@ -76,6 +68,62 @@ const sendMessage = async (conversationId: string, input: SendMessageInput) => {
       content: message.content,
     })),
   ];
+};
+
+const createUserMessage = async (conversationId: string, content: string) => {
+  const userMessage = await prisma.chatMessage.create({
+    data: {
+      conversationId,
+      role: "USER",
+      content,
+    },
+    select: {
+      id: true,
+      role: true,
+      content: true,
+      createdAt: true,
+    },
+  });
+
+  await markConversationUpdated(conversationId);
+
+  return userMessage;
+};
+
+const createAssistantMessage = async (conversationId: string, content: string) => {
+  const assistantMessage = await prisma.chatMessage.create({
+    data: {
+      conversationId,
+      role: "ASSISTANT",
+      content,
+    },
+    select: {
+      id: true,
+      role: true,
+      content: true,
+      createdAt: true,
+    },
+  });
+
+  await markConversationUpdated(conversationId);
+
+  return assistantMessage;
+};
+
+const prepareReplyContext = async (conversationId: string, input: SendMessageInput) => {
+  await getConversationForReply(conversationId);
+
+  const userMessage = await createUserMessage(conversationId, input.content);
+  const llmMessages = await buildLlmMessages(conversationId);
+
+  return {
+    userMessage,
+    llmMessages,
+  };
+};
+
+const sendMessage = async (conversationId: string, input: SendMessageInput) => {
+  const { userMessage, llmMessages } = await prepareReplyContext(conversationId, input);
 
   let llmResponse;
 
@@ -90,28 +138,10 @@ const sendMessage = async (conversationId: string, input: SendMessageInput) => {
     throw new AppError("LLM request failed. Please try again.", 502);
   }
 
-  const assistantMessage = await prisma.chatMessage.create({
-    data: {
-      conversationId,
-      role: "ASSISTANT",
-      content: llmResponse.content,
-    },
-    select: {
-      id: true,
-      role: true,
-      content: true,
-      createdAt: true,
-    },
-  });
-
-  await prisma.conversation.update({
-    where: {
-      id: conversationId,
-    },
-    data: {
-      updatedAt: new Date(),
-    },
-  });
+  const assistantMessage = await createAssistantMessage(
+    conversationId,
+    llmResponse.content,
+  );
 
   return toSendMessageResultDto({
     userMessage,
@@ -119,6 +149,39 @@ const sendMessage = async (conversationId: string, input: SendMessageInput) => {
   });
 };
 
+const createStreamSession = async (conversationId: string, input: SendMessageInput) => {
+  const { userMessage, llmMessages } = await prepareReplyContext(conversationId, input);
+  const stream = createLoggedTextStream({
+    conversationId,
+    provider: input.provider,
+    model: input.model,
+    messages: llmMessages,
+  });
+
+  return {
+    userMessage,
+    stream,
+    async finalize(fullAssistantText: string) {
+      await stream.finish(fullAssistantText);
+
+      const assistantMessage = await createAssistantMessage(
+        conversationId,
+        fullAssistantText,
+      );
+
+      return toStreamDoneDto({
+        userMessage,
+        assistantMessage,
+      });
+    },
+    fail(error: unknown) {
+      stream.fail(error);
+      throw new AppError("LLM request failed. Please try again.", 502);
+    },
+  };
+};
+
 export const chatService = {
   sendMessage,
+  createStreamSession,
 };

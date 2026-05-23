@@ -10,6 +10,7 @@ type ChatThreadProps = {
   isSending?: boolean;
   isLoading?: boolean;
   pendingUserMessageContent?: string | null;
+  streamingAssistantContent?: string | null;
   showAssistantLoading?: boolean;
 };
 
@@ -19,6 +20,7 @@ export function ChatThread({
   isSending = false,
   isLoading = false,
   pendingUserMessageContent = null,
+  streamingAssistantContent = null,
   showAssistantLoading = false,
 }: ChatThreadProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -46,6 +48,7 @@ export function ChatThread({
     lastMessageKey,
     messages.length,
     pendingUserMessageContent,
+    streamingAssistantContent,
     showAssistantLoading,
   ]);
 
@@ -58,6 +61,16 @@ export function ChatThread({
 
         {pendingUserMessageContent ? (
           <MessageBubble pending role="USER" content={pendingUserMessageContent} />
+        ) : null}
+
+        {streamingAssistantContent !== null ? (
+          <MessageBubble
+            pending
+            role="ASSISTANT"
+            content={
+              streamingAssistantContent || "Inference Logger is thinking..."
+            }
+          />
         ) : null}
 
         {showAssistantLoading ? (

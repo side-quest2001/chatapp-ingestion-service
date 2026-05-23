@@ -20,3 +20,20 @@ export type LoggedGenerateTextResult = {
     totalTokens?: number;
   };
 };
+
+export type LoggedUsage = LoggedGenerateTextResult["usage"];
+
+export type LoggedTextStreamResult = {
+  provider: ProviderName;
+  model: string;
+  startedAt: Date;
+  textStream: AsyncIterable<string>;
+  finish: (
+    fullText: string,
+  ) => Promise<{
+    usage: LoggedUsage;
+    latencyMs: number;
+    completedAt: Date;
+  }>;
+  fail: (error: unknown) => void;
+};

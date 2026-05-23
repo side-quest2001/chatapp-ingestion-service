@@ -23,3 +23,5 @@ export const toSendMessageResultDto = (result: {
   userMessage: toChatMessageDto(result.userMessage),
   assistantMessage: toChatMessageDto(result.assistantMessage),
 });
+
+export const toStreamDoneDto = toSendMessageResultDto;

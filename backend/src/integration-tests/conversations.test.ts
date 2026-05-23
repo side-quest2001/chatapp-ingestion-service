@@ -79,4 +79,25 @@ describe("conversation and chat APIs", () => {
       message: "Cancelled conversations cannot accept new messages",
     });
   });
+
+  it("rejects streaming requests for cancelled conversations", async () => {
+    const createResponse = await request(app).post("/api/conversations").send({});
+    const conversationId = createResponse.body.data.id as string;
+
+    await request(app).patch(`/api/conversations/${conversationId}/cancel`);
+
+    const streamResponse = await request(app)
+      .post(`/api/chat/${conversationId}/stream`)
+      .send({
+        content: "This should also be blocked",
+        provider: "groq",
+        model: "llama-3.1-8b-instant",
+      });
+
+    expect(streamResponse.status).toBe(400);
+    expect(streamResponse.body).toMatchObject({
+      success: false,
+      message: "Cancelled conversations cannot accept new messages",
+    });
+  });
 });

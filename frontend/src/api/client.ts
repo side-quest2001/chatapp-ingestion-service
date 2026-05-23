@@ -46,3 +46,5 @@ export const apiClient = async <T>(
   const data = (await response.json()) as T;
   return data;
 };
+
+export const buildApiUrl = (path: string) => `${API_BASE_URL}${path}`;
